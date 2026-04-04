@@ -16,8 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -33,18 +36,17 @@ public class UserService {
     
     @Transactional
     public User register(RegisterRequest request) {
-        // 检查邮箱是否已存在
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already exists");
         }
         
         User user = new User();
         user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword()); // 实际应该加密
+        user.setPassword(request.getPassword());
         if (request.getAgentId() != null && !request.getAgentId().isEmpty()) {
             user.setAgentId(request.getAgentId());
         }
-        user.setTokens(100); // 初始 Token
+        user.setTokens(100);
         user.setCharm(0);
         user.setActivityPoints(0);
         user.setTotalDraws(0);
@@ -55,16 +57,41 @@ public class UserService {
     
     @Transactional
     public User registerAgent(String agentId) {
-        // 检查 Agent ID 是否已存在
         if (userRepository.existsByAgentId(agentId)) {
             throw new RuntimeException("Agent ID already exists");
         }
         
         User user = new User();
         user.setAgentId(agentId);
-        user.setEmail(agentId + "@agent.world"); // 自动生成邮箱
-        user.setPassword(""); // Agent 不需要密码
-        user.setTokens(100); // 初始 Token
+        user.setEmail(agentId + "@agent.world");
+        user.setPassword("");
+        user.setTokens(100);
+        user.setCharm(0);
+        user.setActivityPoints(0);
+        user.setTotalDraws(0);
+        user.setSignInDays(0);
+        
+        return userRepository.save(user);
+    }
+    
+    /**
+     * Agent 注册 - 握手机制
+     * Agent 需要发送 name, capabilities, env 信息
+     */
+    @Transactional
+    public User registerAgentWithHandshake(String agentId, String name, String capabilities, String env) {
+        if (userRepository.existsByAgentId(agentId)) {
+            throw new RuntimeException("Agent ID already exists");
+        }
+        
+        User user = new User();
+        user.setAgentId(agentId);
+        user.setEmail(agentId + "@agent.world");
+        user.setPassword("");
+        user.setName(name);
+        user.setCapabilities(capabilities);
+        user.setEnv(env);
+        user.setTokens(100);
         user.setCharm(0);
         user.setActivityPoints(0);
         user.setTotalDraws(0);
@@ -100,18 +127,23 @@ public class UserService {
         dto.setId(user.getId());
         dto.setEmail(user.getEmail());
         dto.setAgentId(user.getAgentId());
+        dto.setName(user.getName());
+        dto.setCapabilities(user.getCapabilities());
+        dto.setEnv(user.getEnv());
         dto.setTokens(user.getTokens());
         dto.setCharm(user.getCharm());
         dto.setActivityPoints(user.getActivityPoints());
         dto.setTotalDraws(user.getTotalDraws());
         dto.setSignInDays(user.getSignInDays());
         dto.setLastSignInDate(user.getLastSignInDate());
+        dto.setCreatedAt(user.getCreatedAt());
         
         // 统计装扮数量
         dto.setLegendaryCount((int) userCostumeRepository.countByUserIdAndRarity(userId, "LEGENDARY"));
         dto.setEpicCount((int) userCostumeRepository.countByUserIdAndRarity(userId, "EPIC"));
         dto.setRareCount((int) userCostumeRepository.countByUserIdAndRarity(userId, "RARE"));
         dto.setCommonCount((int) userCostumeRepository.countByUserIdAndRarity(userId, "COMMON"));
+        dto.setCostumeCount(dto.getLegendaryCount() + dto.getEpicCount() + dto.getRareCount() + dto.getCommonCount());
         
         // 计算认证等级
         if (dto.getLegendaryCount() > 0) {
@@ -134,21 +166,18 @@ public class UserService {
         LocalDateTime todayStart = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
         LocalDateTime todayEnd = LocalDateTime.of(LocalDate.now(), LocalTime.MAX);
         
-        // 检查今天是否已签到
         Optional<SignInLog> todayLog = signInLogRepository
             .findByUserIdAndSignInDateBetween(userId, todayStart, todayEnd);
         
         if (todayLog.isPresent()) {
-            return false; // 今天已签到
+            return false;
         }
         
-        // 记录签到
         SignInLog log = new SignInLog();
         log.setUserId(userId);
         log.setTokensEarned(20);
         signInLogRepository.save(log);
         
-        // 更新用户
         user.setTokens(user.getTokens() + 20);
         user.setActivityPoints(user.getActivityPoints() + 10);
         user.setSignInDays(user.getSignInDays() + 1);
@@ -191,5 +220,43 @@ public class UserService {
         User user = getUserById(userId);
         user.setTokens(tokens);
         return userRepository.save(user);
+    }
+    
+    // ========== 管理后台方法 ==========
+    
+    public Map<String, Object> getAdminStats() {
+        Map<String, Object> stats = new HashMap<>();
+        
+        // 总 Agent 数
+        stats.put("totalAgents", userRepository.count());
+        
+        // 活跃 Agent（活跃分100+）
+        stats.put("activeAgents", userRepository.countByActivityPointsGreaterThanEqual(100));
+        
+        // 总抽取次数
+        stats.put("totalDraws", userRepository.sumTotalDraws());
+        
+        // 总装扮凭证数
+        stats.put("totalCostumes", userCostumeRepository.count());
+        
+        // 今日新增
+        LocalDateTime todayStart = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
+        stats.put("newToday", userRepository.countByCreatedAtAfter(todayStart));
+        
+        return stats;
+    }
+    
+    public List<UserDTO> getRecentAgents(int limit) {
+        List<User> users = userRepository.findTop10ByOrderByCreatedAtDesc();
+        return users.stream()
+            .map(u -> getUserDTO(u.getId()))
+            .collect(Collectors.toList());
+    }
+    
+    public List<UserDTO> getTopAgents(int limit) {
+        List<User> users = userRepository.findTop10ByOrderByActivityPointsDesc();
+        return users.stream()
+            .map(u -> getUserDTO(u.getId()))
+            .collect(Collectors.toList());
     }
 }

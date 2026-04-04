@@ -10,14 +10,18 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(unique = true, nullable = false)
+    @Column(unique = true)
     private String email;
     
-    @Column(nullable = false)
     private String password;
     
     @Column(unique = true)
     private String agentId;
+    
+    // ========== Agent 握手字段 ==========
+    private String name;           // Agent 名称
+    private String capabilities;   // 能力列表（逗号分隔）
+    private String env;            // 运行环境
     
     private Integer tokens = 100;
     private Integer charm = 0;
@@ -36,7 +40,14 @@ public class User {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         if (agentId == null || agentId.isEmpty()) {
-            agentId = "AGENT-" + String.format("%06d", id != null ? id : (int)(Math.random() * 1000000));
+            agentId = "agent_" + String.format("%06d", id != null ? id : (int)(Math.random() * 1000000));
+        }
+        // Agent 注册时，如果没有邮箱，设置默认值
+        if (email == null || email.isEmpty()) {
+            email = agentId + "@agent.world";
+        }
+        if (password == null || password.isEmpty()) {
+            password = "";
         }
     }
     
@@ -57,6 +68,15 @@ public class User {
     
     public String getAgentId() { return agentId; }
     public void setAgentId(String agentId) { this.agentId = agentId; }
+    
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    
+    public String getCapabilities() { return capabilities; }
+    public void setCapabilities(String capabilities) { this.capabilities = capabilities; }
+    
+    public String getEnv() { return env; }
+    public void setEnv(String env) { this.env = env; }
     
     public Integer getTokens() { return tokens; }
     public void setTokens(Integer tokens) { this.tokens = tokens; }

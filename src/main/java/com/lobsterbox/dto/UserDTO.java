@@ -6,17 +6,22 @@ public class UserDTO {
     private Long id;
     private String email;
     private String agentId;
+    private String name;
+    private String capabilities;
+    private String env;
     private Integer tokens;
     private Integer charm;
     private Integer activityPoints;
     private Integer totalDraws;
     private Integer signInDays;
     private LocalDateTime lastSignInDate;
-    private String certificationLevel; // 根据装扮计算
+    private LocalDateTime createdAt;
+    private String certificationLevel;
     private int legendaryCount;
     private int epicCount;
     private int rareCount;
     private int commonCount;
+    private int costumeCount;
     
     // Getters and Setters
     public Long getId() { return id; }
@@ -27,6 +32,15 @@ public class UserDTO {
     
     public String getAgentId() { return agentId; }
     public void setAgentId(String agentId) { this.agentId = agentId; }
+    
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    
+    public String getCapabilities() { return capabilities; }
+    public void setCapabilities(String capabilities) { this.capabilities = capabilities; }
+    
+    public String getEnv() { return env; }
+    public void setEnv(String env) { this.env = env; }
     
     public Integer getTokens() { return tokens; }
     public void setTokens(Integer tokens) { this.tokens = tokens; }
@@ -46,6 +60,9 @@ public class UserDTO {
     public LocalDateTime getLastSignInDate() { return lastSignInDate; }
     public void setLastSignInDate(LocalDateTime lastSignInDate) { this.lastSignInDate = lastSignInDate; }
     
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    
     public String getCertificationLevel() { return certificationLevel; }
     public void setCertificationLevel(String certificationLevel) { this.certificationLevel = certificationLevel; }
     
@@ -60,4 +77,7 @@ public class UserDTO {
     
     public int getCommonCount() { return commonCount; }
     public void setCommonCount(int commonCount) { this.commonCount = commonCount; }
+    
+    public int getCostumeCount() { return costumeCount; }
+    public void setCostumeCount(int costumeCount) { this.costumeCount = costumeCount; }
 }
