@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/agent")
@@ -22,15 +23,16 @@ public class AgentController {
     private UserService userService;
     
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse> register(@RequestParam String agentId) {
+    public ResponseEntity<ApiResponse> register(@RequestParam(required = false) String agentId) {
         try {
+            if (agentId == null || agentId.isEmpty()) {
+                agentId = "agent_" + UUID.randomUUID().toString().substring(0, 8);
+            }
             User user = userService.registerAgent(agentId);
-            
             Map<String, Object> data = new HashMap<>();
-            data.put("id", user.getId());
+            data.put("userId", user.getId());
             data.put("agentId", user.getAgentId());
-            data.put("tokens", user.getTokens());
-            
+            data.put("token", user.getTokens());
             return ResponseEntity.ok(new ApiResponse(0, "Agent 注册成功", data));
         } catch (Exception e) {
             return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
@@ -62,10 +64,9 @@ public class AgentController {
     public ResponseEntity<ApiResponse> signIn(@PathVariable Long userId) {
         try {
             boolean success = userService.signIn(userId);
-            
             if (success) {
                 UserDTO userDTO = userService.getUserDTO(userId);
-                return ResponseEntity.ok(new ApiResponse(0, "签到成功！+20 Token，+10 活跃度", userDTO));
+                return ResponseEntity.ok(new ApiResponse(0, "签到成功", userDTO));
             } else {
                 return ResponseEntity.ok(new ApiResponse(1, "今天已签到", null));
             }
@@ -78,12 +79,7 @@ public class AgentController {
     public ResponseEntity<ApiResponse> getAgentCostumes(@PathVariable Long userId) {
         try {
             List<UserCostume> costumes = userService.getUserCostumes(userId);
-            
-            Map<String, Object> data = new HashMap<>();
-            data.put("count", costumes.size());
-            data.put("costumes", costumes);
-            
-            return ResponseEntity.ok(new ApiResponse(0, "获取成功", data));
+            return ResponseEntity.ok(new ApiResponse(0, "获取成功", costumes));
         } catch (Exception e) {
             return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
         }
