@@ -1,44 +1,108 @@
 package com.lobsterbox.controller;
 
 import com.lobsterbox.dto.ApiResponse;
+import com.lobsterbox.dto.LoginRequest;
+import com.lobsterbox.dto.RegisterRequest;
+import com.lobsterbox.dto.UserDTO;
 import com.lobsterbox.entity.User;
+import com.lobsterbox.entity.UserCostume;
 import com.lobsterbox.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/user")
+@CrossOrigin(origins = "*")
 public class UserController {
     
     @Autowired
     private UserService userService;
     
-    @PostMapping("/login")
-    public ApiResponse<Map<String, Object>> login(@RequestBody Map<String, String> params) {
-        String openid = params.get("openid");
-        String nickname = params.get("nickname");
-        String avatar = params.get("avatar");
-        
-        User user = userService.loginOrCreate(openid, nickname, avatar);
-        
-        Map<String, Object> data = new HashMap<>();
-        data.put("userId", user.getId());
-        data.put("token", user.getToken());
-        data.put("nickname", user.getNickname());
-        data.put("avatar", user.getAvatar());
-        
-        return ApiResponse.success(data);
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse> register(@RequestBody RegisterRequest request) {
+        try {
+            User user = userService.register(request);
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("userId", user.getId());
+            data.put("email", user.getEmail());
+            data.put("agentId", user.getAgentId());
+            data.put("tokens", user.getTokens());
+            
+            return ResponseEntity.ok(new ApiResponse(0, "注册成功", data));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
     }
     
-    @GetMapping("/info/{userId}")
-    public ApiResponse<User> getUserInfo(@PathVariable Long userId) {
-        User user = userService.getUserById(userId);
-        if (user == null) {
-            return ApiResponse.error(404, "用户不存在");
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse> login(@RequestBody LoginRequest request) {
+        try {
+            User user = userService.login(request);
+            UserDTO userDTO = userService.getUserDTO(user.getId());
+            return ResponseEntity.ok(new ApiResponse(0, "登录成功", userDTO));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
         }
-        return ApiResponse.success(user);
+    }
+    
+    @GetMapping("/{userId}")
+    public ResponseEntity<ApiResponse> getUser(@PathVariable Long userId) {
+        try {
+            UserDTO userDTO = userService.getUserDTO(userId);
+            return ResponseEntity.ok(new ApiResponse(0, "获取成功", userDTO));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
+    }
+    
+    @PostMapping("/{userId}/signin")
+    public ResponseEntity<ApiResponse> signIn(@PathVariable Long userId) {
+        try {
+            boolean success = userService.signIn(userId);
+            
+            if (success) {
+                UserDTO userDTO = userService.getUserDTO(userId);
+                return ResponseEntity.ok(new ApiResponse(0, "签到成功！+20 Token", userDTO));
+            } else {
+                return ResponseEntity.ok(new ApiResponse(1, "今天已签到", null));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
+    }
+    
+    @GetMapping("/{userId}/costumes")
+    public ResponseEntity<ApiResponse> getUserCostumes(@PathVariable Long userId) {
+        try {
+            List<UserCostume> costumes = userService.getUserCostumes(userId);
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("count", costumes.size());
+            data.put("costumes", costumes);
+            
+            return ResponseEntity.ok(new ApiResponse(0, "获取成功", data));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
+    }
+    
+    @GetMapping("/{userId}/checkin-status")
+    public ResponseEntity<ApiResponse> getCheckInStatus(@PathVariable Long userId) {
+        try {
+            boolean hasSignedIn = userService.hasSignedInToday(userId);
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("hasSignedIn", hasSignedIn);
+            
+            return ResponseEntity.ok(new ApiResponse(0, "获取成功", data));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
     }
 }
