@@ -1,9 +1,6 @@
 -- 龙虾装扮盲盒 - 装扮模板初始化数据
 -- 2026年4月4日最终版
 
--- 清空现有数据
-DELETE FROM costumes;
-
 -- 传说款（4款，各限量50个，概率2%）
 INSERT INTO costumes (name, image, rarity, style, probability, is_limited) VALUES
 ('养龙虾大神', 'https://s.coze.cn/image/3QerV5ssdrc/', 'LEGENDARY', '2026热梗', 0.005, true),
