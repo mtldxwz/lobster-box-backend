@@ -5,6 +5,22 @@ public class ApiResponse<T> {
     private String message;
     private T data;
     
+    // 无参构造函数
+    public ApiResponse() {}
+    
+    // 三参数构造函数
+    public ApiResponse(int code, String message, T data) {
+        this.code = code;
+        this.message = message;
+        this.data = data;
+    }
+    
+    // 两参数构造函数
+    public ApiResponse(int code, String message) {
+        this.code = code;
+        this.message = message;
+    }
+    
     public int getCode() { return code; }
     public void setCode(int code) { this.code = code; }
     public String getMessage() { return message; }
