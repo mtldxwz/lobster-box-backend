@@ -1,5 +1,6 @@
 package com.lobsterbox.service;
 
+import com.lobsterbox.dto.UserDTO;
 import com.lobsterbox.entity.Costume;
 import com.lobsterbox.entity.UserCostume;
 import com.lobsterbox.repository.CostumeRepository;
@@ -39,6 +40,22 @@ public class BoxService {
     
     @Transactional
     public List<UserCostume> draw(Long userId, int count) {
+        // ========== 活跃分门槛判断 ==========
+        UserDTO user = userService.getUserDTO(userId);
+        int activityScore = (user.getSignInDays() != null ? user.getSignInDays() : 0) * 10 
+                          + (user.getTotalDraws() != null ? user.getTotalDraws() : 0) * 5;
+        
+        if (activityScore < 100) {
+            throw new RuntimeException("活跃分不足，需要100+才能抽盲盒。当前活跃分: " + activityScore + "。请先签到积累活跃分。");
+        }
+        
+        // ========== Token 判断 ==========
+        int tokenCost = count == 1 ? 10 : 88;
+        if (user.getTokens() < tokenCost) {
+            throw new RuntimeException("Token不足，需要 " + tokenCost + " Token");
+        }
+        
+        // ========== 抽取逻辑 ==========
         List<Costume> allCostumes = costumeRepository.findAll();
         
         if (allCostumes.isEmpty()) {
@@ -80,7 +97,6 @@ public class BoxService {
         }
         
         // 更新用户统计
-        int tokenCost = count == 1 ? 10 : 88;
         userService.updateAfterDraw(userId, tokenCost, results);
         
         return results;
