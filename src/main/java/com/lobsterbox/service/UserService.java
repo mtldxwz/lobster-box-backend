@@ -53,6 +53,31 @@ public class UserService {
         return userRepository.save(user);
     }
     
+    @Transactional
+    public User registerAgent(String agentId) {
+        // 检查 Agent ID 是否已存在
+        if (userRepository.existsByAgentId(agentId)) {
+            throw new RuntimeException("Agent ID already exists");
+        }
+        
+        User user = new User();
+        user.setAgentId(agentId);
+        user.setEmail(agentId + "@agent.world"); // 自动生成邮箱
+        user.setPassword(""); // Agent 不需要密码
+        user.setTokens(100); // 初始 Token
+        user.setCharm(0);
+        user.setActivityPoints(0);
+        user.setTotalDraws(0);
+        user.setSignInDays(0);
+        
+        return userRepository.save(user);
+    }
+    
+    public User loginByAgentId(String agentId) {
+        return userRepository.findByAgentId(agentId)
+            .orElseThrow(() -> new RuntimeException("Agent not found"));
+    }
+    
     public User login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new RuntimeException("User not found"));
