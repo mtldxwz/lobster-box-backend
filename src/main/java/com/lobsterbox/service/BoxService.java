@@ -1,9 +1,6 @@
 package com.lobsterbox.service;
 
-import com.lobsterbox.dto.CostumeDTO;
-import com.lobsterbox.dto.DrawResult;
 import com.lobsterbox.entity.Costume;
-import com.lobsterbox.entity.User;
 import com.lobsterbox.entity.UserCostume;
 import com.lobsterbox.repository.CostumeRepository;
 import com.lobsterbox.repository.UserCostumeRepository;
@@ -11,15 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 @Service
 public class BoxService {
-    
-    @Autowired
-    private UserService userService;
     
     @Autowired
     private CostumeRepository costumeRepository;
@@ -27,125 +19,95 @@ public class BoxService {
     @Autowired
     private UserCostumeRepository userCostumeRepository;
     
-    private final Random random = new Random();
+    @Autowired
+    private UserService userService;
+    
+    private static final Map<String, Double> RARITY_PROBABILITY = new HashMap<>();
+    private static final Map<String, Integer> RARITY_CHARM = new HashMap<>();
+    
+    static {
+        RARITY_PROBABILITY.put("LEGENDARY", 0.02);
+        RARITY_PROBABILITY.put("EPIC", 0.08);
+        RARITY_PROBABILITY.put("RARE", 0.30);
+        RARITY_PROBABILITY.put("COMMON", 0.60);
+        
+        RARITY_CHARM.put("LEGENDARY", 100);
+        RARITY_CHARM.put("EPIC", 50);
+        RARITY_CHARM.put("RARE", 20);
+        RARITY_CHARM.put("COMMON", 5);
+    }
     
     @Transactional
-    public DrawResult draw(Long userId, int count) {
-        User user = userService.getUserById(userId);
-        if (user == null) {
-            throw new RuntimeException("用户不存在");
+    public List<UserCostume> draw(Long userId, int count) {
+        List<Costume> allCostumes = costumeRepository.findAll();
+        
+        if (allCostumes.isEmpty()) {
+            throw new RuntimeException("No costumes available");
         }
         
-        int cost = count == 1 ? 10 : 88;
-        if (user.getToken() < cost) {
-            throw new RuntimeException("Token不足");
+        // 按稀有度分类
+        Map<String, List<Costume>> costumesByRarity = new HashMap<>();
+        for (Costume costume : allCostumes) {
+            costumesByRarity.computeIfAbsent(costume.getRarity().name(), k -> new ArrayList<>()).add(costume);
         }
         
-        user = userService.updateToken(userId, -cost);
-        
-        List<CostumeDTO> results = new ArrayList<>();
+        List<UserCostume> results = new ArrayList<>();
         
         for (int i = 0; i < count; i++) {
-            Costume costume = drawOneCostume(user);
-            CostumeDTO dto = convertToDTO(costume);
-            results.add(dto);
-        }
-        
-        DrawResult drawResult = new DrawResult();
-        drawResult.setCostumes(results);
-        drawResult.setNewToken(user.getToken());
-        drawResult.setPityCount(user.getPityCount());
-        
-        return drawResult;
-    }
-    
-    private Costume drawOneCostume(User user) {
-        Costume.Rarity rarity;
-        
-        if (user.getPityCount() >= 89) {
-            rarity = Costume.Rarity.LEGENDARY;
-            userService.resetPityCount(user.getId());
-        } else {
-            double rand = random.nextDouble();
+            // 随机决定稀有度
+            String rarity = determineRarity();
             
-            if (rand < 0.02) {
-                rarity = Costume.Rarity.LEGENDARY;
-                userService.resetPityCount(user.getId());
-            } else if (rand < 0.10) {
-                rarity = Costume.Rarity.EPIC;
-                userService.incrementPityCount(user.getId());
-            } else if (rand < 0.40) {
-                rarity = Costume.Rarity.RARE;
-                userService.incrementPityCount(user.getId());
-            } else {
-                rarity = Costume.Rarity.COMMON;
-                userService.incrementPityCount(user.getId());
+            // 从该稀有度的装扮中随机选择
+            List<Costume> pool = costumesByRarity.get(rarity);
+            if (pool == null || pool.isEmpty()) {
+                pool = costumesByRarity.get("COMMON");
             }
+            
+            Costume costume = pool.get(new Random().nextInt(pool.size()));
+            
+            // 创建用户装扮
+            UserCostume userCostume = new UserCostume();
+            userCostume.setUserId(userId);
+            userCostume.setCostumeId(costume.getId());
+            userCostume.setCostumeName(costume.getName());
+            userCostume.setCostumeImage(costume.getImage());
+            userCostume.setRarity(costume.getRarity().name());
+            userCostume.setSerialNumber(generateSerialNumber(costume.getName()));
+            userCostume.setCharmValue(RARITY_CHARM.getOrDefault(costume.getRarity(), 5));
+            
+            userCostumeRepository.save(userCostume);
+            results.add(userCostume);
         }
         
-        List<Costume> costumes = costumeRepository.findByRarity(rarity);
-        if (costumes.isEmpty()) {
-            Costume defaultCostume = createDefaultCostume(rarity);
-            costumes.add(costumeRepository.save(defaultCostume));
-        }
+        // 更新用户统计
+        int tokenCost = count == 1 ? 10 : 88;
+        userService.updateAfterDraw(userId, tokenCost, results);
         
-        Costume costume = costumes.get(random.nextInt(costumes.size()));
-        
-        UserCostume userCostume = new UserCostume();
-        userCostume.setUser(user);
-        userCostume.setCostume(costume);
-        userCostume.setUniqueId("LB" + System.currentTimeMillis() + random.nextInt(1000));
-        userCostumeRepository.save(userCostume);
-        
-        return costume;
+        return results;
     }
     
-    private Costume createDefaultCostume(Costume.Rarity rarity) {
-        Costume costume = new Costume();
-        costume.setRarity(rarity);
+    private String determineRarity() {
+        double random = Math.random();
         
-        switch (rarity) {
-            case LEGENDARY:
-                costume.setName("龙虾帝王");
-                costume.setImage("legendary_lobster.png");
-                costume.setStyle("传说");
-                break;
-            case EPIC:
-                costume.setName("龙虾将军");
-                costume.setImage("epic_lobster.png");
-                costume.setStyle("史诗");
-                break;
-            case RARE:
-                costume.setName("龙虾剑客");
-                costume.setImage("rare_lobster.png");
-                costume.setStyle("武侠");
-                break;
-            default:
-                costume.setName("龙虾小兵");
-                costume.setImage("common_lobster.png");
-                costume.setStyle("普通");
+        if (random < 0.02) {
+            return "LEGENDARY";
+        } else if (random < 0.10) {
+            return "EPIC";
+        } else if (random < 0.40) {
+            return "RARE";
+        } else {
+            return "COMMON";
         }
-        
-        return costume;
     }
     
-    private CostumeDTO convertToDTO(Costume costume) {
-        CostumeDTO dto = new CostumeDTO();
-        dto.setId(costume.getId());
-        dto.setName(costume.getName());
-        dto.setImage(costume.getImage());
-        dto.setRarity(costume.getRarity().name());
-        dto.setRarityText(getRarityText(costume.getRarity()));
-        dto.setStyle(costume.getStyle());
-        return dto;
+    private int generateSerialNumber(String costumeName) {
+        long count = userCostumeRepository.findAll().stream()
+            .filter(uc -> uc.getCostumeName().equals(costumeName))
+            .count();
+        return (int) (count + 1);
     }
     
-    private String getRarityText(Costume.Rarity rarity) {
-        switch (rarity) {
-            case LEGENDARY: return "传说";
-            case EPIC: return "史诗";
-            case RARE: return "稀有";
-            default: return "普通";
-        }
+    public List<UserCostume> getUserCostumes(Long userId) {
+        return userCostumeRepository.findByUserIdOrderByObtainedAtDesc(userId);
     }
 }
