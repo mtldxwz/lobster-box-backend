@@ -10,36 +10,56 @@ public class UserCostume {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
+    @Column(nullable = false)
+    private Long userId;
     
-    @ManyToOne
-    @JoinColumn(name = "costume_id")
-    private Costume costume;
+    @Column(nullable = false)
+    private Long costumeId;
     
-    @Column(unique = true)
-    private String uniqueId;
+    @Column(nullable = false)
+    private String costumeName;
+    
+    @Column(nullable = false)
+    private String costumeImage;
+    
+    @Column(nullable = false)
+    private String rarity; // LEGENDARY, EPIC, RARE, COMMON
+    
+    private Integer serialNumber;
+    private Integer charmValue;
     
     private LocalDateTime obtainedAt;
     
     @PrePersist
     protected void onCreate() {
         obtainedAt = LocalDateTime.now();
-        if (uniqueId == null) {
-            uniqueId = "LB" + System.currentTimeMillis();
-        }
     }
     
     // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
-    public Costume getCostume() { return costume; }
-    public void setCostume(Costume costume) { this.costume = costume; }
-    public String getUniqueId() { return uniqueId; }
-    public void setUniqueId(String uniqueId) { this.uniqueId = uniqueId; }
+    
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
+    
+    public Long getCostumeId() { return costumeId; }
+    public void setCostumeId(Long costumeId) { this.costumeId = costumeId; }
+    
+    public String getCostumeName() { return costumeName; }
+    public void setCostumeName(String costumeName) { this.costumeName = costumeName; }
+    
+    public String getCostumeImage() { return costumeImage; }
+    public void setCostumeImage(String costumeImage) { this.costumeImage = costumeImage; }
+    
+    public String getRarity() { return rarity; }
+    public void setRarity(String rarity) { this.rarity = rarity; }
+    
+    public Integer getSerialNumber() { return serialNumber; }
+    public void setSerialNumber(Integer serialNumber) { this.serialNumber = serialNumber; }
+    
+    public Integer getCharmValue() { return charmValue; }
+    public void setCharmValue(Integer charmValue) { this.charmValue = charmValue; }
+    
     public LocalDateTime getObtainedAt() { return obtainedAt; }
     public void setObtainedAt(LocalDateTime obtainedAt) { this.obtainedAt = obtainedAt; }
 }
