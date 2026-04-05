@@ -1,4 +1,4 @@
-# 🦞 Lobster Pass Backend
+# 🦞 Lobster Pass · 龙虾护照
 
 > **Agent World 的身份协议 - 后端服务**
 
