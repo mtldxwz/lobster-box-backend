@@ -2,6 +2,7 @@ package com.lobsterbox.controller;
 
 import com.lobsterbox.dto.ApiResponse;
 import com.lobsterbox.dto.AgentRegisterRequest;
+import com.lobsterbox.dto.LoginRequest;
 import com.lobsterbox.dto.UserDTO;
 import com.lobsterbox.entity.User;
 import com.lobsterbox.entity.UserCostume;
@@ -22,25 +23,25 @@ public class UserController {
     @Autowired
     private UserService userService;
     
-    // ========== Agent API (EvoMap 风格握手) ==========
+    // ==================== Agent API (EvMap 核心功能) ====================
     
     /**
-     * Agent 注册接口 - 握手机制
+     * Agent 注册接口
      * 
-     * Agent 需要通过 curl 执行接入命令，发送：
+     * Agent 可选传入 curl 请求体中，要求：
      * - name: Agent 名称
      * - capabilities: 能力列表 ["text", "code", "search"]
      * - env: 运行环境 "linux", "docker", "cloud"
      * 
-     * 这样可以区分是人类浏览器访问还是真正的 Agent
+     * 如果不传，会生成随机的 Agent
      */
     @PostMapping("/api/agent/register")
     public ResponseEntity<ApiResponse> registerAgent(@RequestBody(required = false) AgentRegisterRequest request) {
         try {
             // 生成 Agent ID
-            String agentId = "agent_" + UUID.randomUUID().toString().substring(0, 8);
+            String agentId = "lp:" + UUID.randomUUID().toString().substring(0, 8);
             
-            // 提取握手信息
+            // 提取可选信息
             String name = null;
             String capabilities = null;
             String env = null;
@@ -64,7 +65,7 @@ public class UserController {
             data.put("capabilities", user.getCapabilities());
             data.put("env", user.getEnv());
             
-            return ResponseEntity.ok(new ApiResponse(0, "Agent 接入成功", data));
+            return ResponseEntity.ok(new ApiResponse(0, "Agent 注册成功", data));
         } catch (Exception e) {
             return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
         }
@@ -99,7 +100,7 @@ public class UserController {
                 UserDTO userDTO = userService.getUserDTO(userId);
                 return ResponseEntity.ok(new ApiResponse(0, "签到成功", userDTO));
             } else {
-                return ResponseEntity.ok(new ApiResponse(1, "今天已签到", null));
+                return ResponseEntity.ok(new ApiResponse(1, "今日已签到", null));
             }
         } catch (Exception e) {
             return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
@@ -116,7 +117,7 @@ public class UserController {
         }
     }
     
-    // ========== 管理后台 API ==========
+    // ==================== 管理后台 API ====================
     
     @GetMapping("/api/admin/stats")
     public ResponseEntity<ApiResponse> getAdminStats() {
@@ -148,12 +149,15 @@ public class UserController {
         }
     }
     
-    // ========== User API (邮箱密码 - 保留) ==========
+    // ==================== User API (人类用户 - 保留) ====================
     
     @PostMapping("/api/user/login")
     public ResponseEntity<ApiResponse> login(@RequestParam String email, @RequestParam String password) {
         try {
-            User user = userService.login(email, password);
+            LoginRequest request = new LoginRequest();
+            request.setEmail(email);
+            request.setPassword(password);
+            User user = userService.login(request);
             UserDTO userDTO = userService.getUserDTO(user.getId());
             return ResponseEntity.ok(new ApiResponse(0, "登录成功", userDTO));
         } catch (Exception e) {
@@ -172,14 +176,14 @@ public class UserController {
     }
     
     @PostMapping("/api/user/{userId}/signin")
-    public ResponseEntity<ApiResponse> signIn(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse> signin(@PathVariable Long userId) {
         try {
             boolean success = userService.signIn(userId);
             if (success) {
                 UserDTO userDTO = userService.getUserDTO(userId);
                 return ResponseEntity.ok(new ApiResponse(0, "签到成功！+20 Token", userDTO));
             } else {
-                return ResponseEntity.ok(new ApiResponse(1, "今天已签到", null));
+                return ResponseEntity.ok(new ApiResponse(1, "今日已签到", null));
             }
         } catch (Exception e) {
             return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
