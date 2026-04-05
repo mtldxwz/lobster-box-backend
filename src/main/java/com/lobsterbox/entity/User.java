@@ -40,15 +40,26 @@ public class User {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         if (agentId == null || agentId.isEmpty()) {
-            agentId = "agent_" + String.format("%06d", id != null ? id : (int)(Math.random() * 1000000));
+            // Lobster Pass ID 格式: lp:xxxxxxxx (8位随机字母数字)
+            agentId = "lp:" + generateRandomId(8);
         }
         // Agent 注册时，如果没有邮箱，设置默认值
         if (email == null || email.isEmpty()) {
-            email = agentId + "@agent.world";
+            email = agentId + "@lobster.world";
         }
         if (password == null || password.isEmpty()) {
             password = "";
         }
+    }
+    
+    private String generateRandomId(int length) {
+        String chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+        StringBuilder sb = new StringBuilder();
+        java.util.Random random = new java.util.Random();
+        for (int i = 0; i < length; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
     }
     
     @PreUpdate
