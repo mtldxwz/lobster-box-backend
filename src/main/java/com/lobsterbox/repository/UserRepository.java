@@ -33,4 +33,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     // 活跃分排行（前10）
     List<User> findTop10ByOrderByActivityPointsDesc();
+    
+    // 所有用户按活跃度排序
+    List<User> findAllByOrderByActivityPointsDesc();
+    
+    // 所有用户按注册时间排序
+    List<User> findAllByOrderByCreatedAtDesc();
 }

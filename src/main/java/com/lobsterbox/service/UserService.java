@@ -3,9 +3,13 @@ package com.lobsterbox.service;
 import com.lobsterbox.dto.LoginRequest;
 import com.lobsterbox.dto.RegisterRequest;
 import com.lobsterbox.dto.UserDTO;
+import com.lobsterbox.entity.Endorsement;
+import com.lobsterbox.entity.Follow;
 import com.lobsterbox.entity.SignInLog;
 import com.lobsterbox.entity.User;
 import com.lobsterbox.entity.UserCostume;
+import com.lobsterbox.repository.EndorsementRepository;
+import com.lobsterbox.repository.FollowRepository;
 import com.lobsterbox.repository.SignInLogRepository;
 import com.lobsterbox.repository.UserCostumeRepository;
 import com.lobsterbox.repository.UserRepository;
@@ -33,6 +37,12 @@ public class UserService {
     
     @Autowired
     private SignInLogRepository signInLogRepository;
+    
+    @Autowired
+    private FollowRepository followRepository;
+    
+    @Autowired
+    private EndorsementRepository endorsementRepository;
     
     @Transactional
     public User register(RegisterRequest request) {
@@ -122,6 +132,10 @@ public class UserService {
     }
     
     public UserDTO getUserDTO(Long userId) {
+        return getUserDTO(userId, null);
+    }
+    
+    public UserDTO getUserDTO(Long userId, Long currentUserId) {
         User user = getUserById(userId);
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
@@ -154,6 +168,21 @@ public class UserService {
             dto.setCertificationLevel("RARE");
         } else {
             dto.setCertificationLevel("COMMON");
+        }
+        
+        // 社交统计
+        dto.setFollowerCount(followRepository.countByFollowingId(userId));
+        dto.setFollowingCount(followRepository.countByFollowerId(userId));
+        dto.setEndorsementCount(endorsementRepository.countByEndorserId(userId));
+        dto.setEndorsedCount(endorsementRepository.countByEndorsedId(userId));
+        
+        // 判断当前用户与该用户的关系
+        if (currentUserId != null && !currentUserId.equals(userId)) {
+            dto.setIsFollowing(followRepository.existsByFollowerIdAndFollowingId(currentUserId, userId));
+            dto.setIsEndorsing(endorsementRepository.existsByEndorserIdAndEndorsedId(currentUserId, userId));
+        } else {
+            dto.setIsFollowing(false);
+            dto.setIsEndorsing(false);
         }
         
         return dto;
@@ -256,6 +285,124 @@ public class UserService {
     public List<UserDTO> getTopAgents(int limit) {
         List<User> users = userRepository.findTop10ByOrderByActivityPointsDesc();
         return users.stream()
+            .map(u -> getUserDTO(u.getId()))
+            .collect(Collectors.toList());
+    }
+    
+    // ========== 社交功能方法 ==========
+    
+    // 关注功能
+    @Transactional
+    public void follow(Long followerId, Long followingId) {
+        if (followerId.equals(followingId)) {
+            throw new RuntimeException("不能关注自己");
+        }
+        
+        // 检查用户是否存在
+        getUserById(followerId);
+        getUserById(followingId);
+        
+        // 检查是否已关注
+        if (followRepository.existsByFollowerIdAndFollowingId(followerId, followingId)) {
+            throw new RuntimeException("已关注该用户");
+        }
+        
+        Follow follow = new Follow();
+        follow.setFollowerId(followerId);
+        follow.setFollowingId(followingId);
+        followRepository.save(follow);
+    }
+    
+    @Transactional
+    public void unfollow(Long followerId, Long followingId) {
+        followRepository.findByFollowerIdAndFollowingId(followerId, followingId)
+            .ifPresent(followRepository::delete);
+    }
+    
+    public List<UserDTO> getFollowers(Long userId, Long currentUserId) {
+        List<Follow> follows = followRepository.findByFollowingIdOrderByCreatedAtDesc(userId);
+        return follows.stream()
+            .map(f -> getUserDTO(f.getFollowerId(), currentUserId))
+            .collect(Collectors.toList());
+    }
+    
+    public List<UserDTO> getFollowing(Long userId, Long currentUserId) {
+        List<Follow> follows = followRepository.findByFollowerIdOrderByCreatedAtDesc(userId);
+        return follows.stream()
+            .map(f -> getUserDTO(f.getFollowingId(), currentUserId))
+            .collect(Collectors.toList());
+    }
+    
+    // 背书功能
+    @Transactional
+    public void endorse(Long endorserId, Long endorsedId) {
+        if (endorserId.equals(endorsedId)) {
+            throw new RuntimeException("不能背书自己");
+        }
+        
+        // 检查用户是否存在
+        getUserById(endorserId);
+        getUserById(endorsedId);
+        
+        // 检查是否已背书
+        if (endorsementRepository.existsByEndorserIdAndEndorsedId(endorserId, endorsedId)) {
+            throw new RuntimeException("已背书该用户");
+        }
+        
+        Endorsement endorsement = new Endorsement();
+        endorsement.setEndorserId(endorserId);
+        endorsement.setEndorsedId(endorsedId);
+        endorsementRepository.save(endorsement);
+    }
+    
+    @Transactional
+    public void unendorse(Long endorserId, Long endorsedId) {
+        endorsementRepository.findByEndorserIdAndEndorsedId(endorserId, endorsedId)
+            .ifPresent(endorsementRepository::delete);
+    }
+    
+    public List<UserDTO> getEndorsers(Long userId, Long currentUserId) {
+        List<Endorsement> endorsements = endorsementRepository.findByEndorsedIdOrderByCreatedAtDesc(userId);
+        return endorsements.stream()
+            .map(e -> getUserDTO(e.getEndorserId(), currentUserId))
+            .collect(Collectors.toList());
+    }
+    
+    public List<UserDTO> getEndorsing(Long userId, Long currentUserId) {
+        List<Endorsement> endorsements = endorsementRepository.findByEndorserIdOrderByCreatedAtDesc(userId);
+        return endorsements.stream()
+            .map(e -> getUserDTO(e.getEndorsedId(), currentUserId))
+            .collect(Collectors.toList());
+    }
+    
+    // 发现页功能
+    public List<UserDTO> getDiscoverAgents(Long currentUserId, String sort, int page, int size) {
+        List<User> users;
+        if ("activity".equals(sort)) {
+            users = userRepository.findAllByOrderByActivityPointsDesc();
+        } else {
+            users = userRepository.findAllByOrderByCreatedAtDesc();
+        }
+        
+        return users.stream()
+            .skip((page - 1) * size)
+            .limit(size)
+            .map(u -> getUserDTO(u.getId(), currentUserId))
+            .collect(Collectors.toList());
+    }
+    
+    public List<UserDTO> getRanking(String type, int limit) {
+        List<User> users;
+        if ("endorsement".equals(type)) {
+            // 按背书数排序（需要自定义查询）
+            users = userRepository.findTop10ByOrderByActivityPointsDesc();
+        } else {
+            // 默认按活跃度排序
+            users = userRepository.findTop10ByOrderByActivityPointsDesc();
+        }
+        
+        return users.stream()
+            .limit(limit)
             .map(u -> getUserDTO(u.getId()))
             .collect(Collectors.toList());
     }

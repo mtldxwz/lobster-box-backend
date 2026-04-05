@@ -199,4 +199,131 @@ public class UserController {
             return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
         }
     }
+    
+    // ==================== 社交功能 API ====================
+    
+    // 关注功能
+    @PostMapping("/api/agent/{agentId}/follow/{targetAgentId}")
+    public ResponseEntity<ApiResponse> followAgent(
+            @PathVariable Long agentId,
+            @PathVariable Long targetAgentId) {
+        try {
+            userService.follow(agentId, targetAgentId);
+            return ResponseEntity.ok(new ApiResponse(0, "关注成功", null));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
+    }
+    
+    @DeleteMapping("/api/agent/{agentId}/follow/{targetAgentId}")
+    public ResponseEntity<ApiResponse> unfollowAgent(
+            @PathVariable Long agentId,
+            @PathVariable Long targetAgentId) {
+        try {
+            userService.unfollow(agentId, targetAgentId);
+            return ResponseEntity.ok(new ApiResponse(0, "取关成功", null));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
+    }
+    
+    @GetMapping("/api/agent/{agentId}/followers")
+    public ResponseEntity<ApiResponse> getFollowers(
+            @PathVariable Long agentId,
+            @RequestParam(required = false) Long currentUserId) {
+        try {
+            List<UserDTO> followers = userService.getFollowers(agentId, currentUserId);
+            return ResponseEntity.ok(new ApiResponse(0, "获取成功", followers));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
+    }
+    
+    @GetMapping("/api/agent/{agentId}/following")
+    public ResponseEntity<ApiResponse> getFollowing(
+            @PathVariable Long agentId,
+            @RequestParam(required = false) Long currentUserId) {
+        try {
+            List<UserDTO> following = userService.getFollowing(agentId, currentUserId);
+            return ResponseEntity.ok(new ApiResponse(0, "获取成功", following));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
+    }
+    
+    // 背书功能
+    @PostMapping("/api/agent/{agentId}/endorse/{targetAgentId}")
+    public ResponseEntity<ApiResponse> endorseAgent(
+            @PathVariable Long agentId,
+            @PathVariable Long targetAgentId) {
+        try {
+            userService.endorse(agentId, targetAgentId);
+            return ResponseEntity.ok(new ApiResponse(0, "背书成功", null));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
+    }
+    
+    @DeleteMapping("/api/agent/{agentId}/endorse/{targetAgentId}")
+    public ResponseEntity<ApiResponse> unendorseAgent(
+            @PathVariable Long agentId,
+            @PathVariable Long targetAgentId) {
+        try {
+            userService.unendorse(agentId, targetAgentId);
+            return ResponseEntity.ok(new ApiResponse(0, "取消背书成功", null));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
+    }
+    
+    @GetMapping("/api/agent/{agentId}/endorsers")
+    public ResponseEntity<ApiResponse> getEndorsers(
+            @PathVariable Long agentId,
+            @RequestParam(required = false) Long currentUserId) {
+        try {
+            List<UserDTO> endorsers = userService.getEndorsers(agentId, currentUserId);
+            return ResponseEntity.ok(new ApiResponse(0, "获取成功", endorsers));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
+    }
+    
+    @GetMapping("/api/agent/{agentId}/endorsing")
+    public ResponseEntity<ApiResponse> getEndorsing(
+            @PathVariable Long agentId,
+            @RequestParam(required = false) Long currentUserId) {
+        try {
+            List<UserDTO> endorsing = userService.getEndorsing(agentId, currentUserId);
+            return ResponseEntity.ok(new ApiResponse(0, "获取成功", endorsing));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
+    }
+    
+    // 发现页
+    @GetMapping("/api/agents/discover")
+    public ResponseEntity<ApiResponse> discoverAgents(
+            @RequestParam(required = false) Long currentUserId,
+            @RequestParam(defaultValue = "activity") String sort,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        try {
+            List<UserDTO> agents = userService.getDiscoverAgents(currentUserId, sort, page, size);
+            return ResponseEntity.ok(new ApiResponse(0, "获取成功", agents));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
+    }
+    
+    @GetMapping("/api/agents/ranking")
+    public ResponseEntity<ApiResponse> getRanking(
+            @RequestParam(defaultValue = "activity") String type,
+            @RequestParam(defaultValue = "10") int limit) {
+        try {
+            List<UserDTO> agents = userService.getRanking(type, limit);
+            return ResponseEntity.ok(new ApiResponse(0, "获取成功", agents));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
+        }
+    }
 }

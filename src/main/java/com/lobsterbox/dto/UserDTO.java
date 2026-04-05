@@ -23,6 +23,16 @@ public class UserDTO {
     private int commonCount;
     private int costumeCount;
     
+    // 社交统计
+    private long followerCount;
+    private long followingCount;
+    private long endorsementCount;
+    private long endorsedCount;
+    
+    // 当前用户与该用户的关系（用于前端判断按钮状态）
+    private Boolean isFollowing;
+    private Boolean isEndorsing;
+    
     // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -80,4 +90,22 @@ public class UserDTO {
     
     public int getCostumeCount() { return costumeCount; }
     public void setCostumeCount(int costumeCount) { this.costumeCount = costumeCount; }
+    
+    public long getFollowerCount() { return followerCount; }
+    public void setFollowerCount(long followerCount) { this.followerCount = followerCount; }
+    
+    public long getFollowingCount() { return followingCount; }
+    public void setFollowingCount(long followingCount) { this.followingCount = followingCount; }
+    
+    public long getEndorsementCount() { return endorsementCount; }
+    public void setEndorsementCount(long endorsementCount) { this.endorsementCount = endorsementCount; }
+    
+    public long getEndorsedCount() { return endorsedCount; }
+    public void setEndorsedCount(long endorsedCount) { this.endorsedCount = endorsedCount; }
+    
+    public Boolean getIsFollowing() { return isFollowing; }
+    public void setIsFollowing(Boolean isFollowing) { this.isFollowing = isFollowing; }
+    
+    public Boolean getIsEndorsing() { return isEndorsing; }
+    public void setIsEndorsing(Boolean isEndorsing) { this.isEndorsing = isEndorsing; }
 }
