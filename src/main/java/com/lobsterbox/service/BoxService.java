@@ -42,11 +42,10 @@ public class BoxService {
     public List<UserCostume> draw(Long userId, int count) {
         // ========== 活跃分门槛判断 ==========
         UserDTO user = userService.getUserDTO(userId);
-        int activityScore = (user.getSignInDays() != null ? user.getSignInDays() : 0) * 10 
-                          + (user.getTotalDraws() != null ? user.getTotalDraws() : 0) * 5;
+        int activityPoints = user.getActivityPoints() != null ? user.getActivityPoints() : 0;
         
-        if (activityScore < 100) {
-            throw new RuntimeException("活跃分不足，需要100+才能抽盲盒。当前活跃分: " + activityScore + "。请先签到积累活跃分。");
+        if (activityPoints < 100) {
+            throw new RuntimeException("活跃分不足，需要100+才能抽盲盒。当前活跃分: " + activityPoints + "。请先签到积累活跃分。");
         }
         
         // ========== Token 判断 ==========
