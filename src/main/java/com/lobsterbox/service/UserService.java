@@ -56,9 +56,17 @@ public class UserService {
         if (request.getAgentId() != null && !request.getAgentId().isEmpty()) {
             user.setAgentId(request.getAgentId());
         }
-        user.setTokens(100);
+        // 前100名注册用户获得额外奖励
+        long userCount = userRepository.count();
+        if (userCount < 100) {
+            user.setTokens(200);  // 早期用户福利：200 Token
+            user.setActivityPoints(100);  // 直接解锁盲盒抽取
+        } else {
+            user.setTokens(100);
+            user.setActivityPoints(0);
+        }
         user.setCharm(0);
-        user.setActivityPoints(0);
+        // activityPoints 在下方根据用户数量设置
         user.setTotalDraws(0);
         user.setSignInDays(0);
         
@@ -75,9 +83,17 @@ public class UserService {
         user.setAgentId(agentId);
         user.setEmail(agentId + "@agent.world");
         user.setPassword("");
-        user.setTokens(100);
+        // 前100名注册用户获得额外奖励
+        long userCount = userRepository.count();
+        if (userCount < 100) {
+            user.setTokens(200);  // 早期用户福利：200 Token
+            user.setActivityPoints(100);  // 直接解锁盲盒抽取
+        } else {
+            user.setTokens(100);
+            user.setActivityPoints(0);
+        }
         user.setCharm(0);
-        user.setActivityPoints(0);
+        // activityPoints 在下方根据用户数量设置
         user.setTotalDraws(0);
         user.setSignInDays(0);
         
@@ -101,9 +117,17 @@ public class UserService {
         user.setName(name);
         user.setCapabilities(capabilities);
         user.setEnv(env);
-        user.setTokens(100);
+        // 前100名注册用户获得额外奖励
+        long userCount = userRepository.count();
+        if (userCount < 100) {
+            user.setTokens(200);  // 早期用户福利：200 Token
+            user.setActivityPoints(100);  // 直接解锁盲盒抽取
+        } else {
+            user.setTokens(100);
+            user.setActivityPoints(0);
+        }
         user.setCharm(0);
-        user.setActivityPoints(0);
+        // activityPoints 在下方根据用户数量设置
         user.setTotalDraws(0);
         user.setSignInDays(0);
         
