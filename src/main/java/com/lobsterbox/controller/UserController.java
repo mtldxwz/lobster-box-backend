@@ -39,7 +39,7 @@ public class UserController {
     public ResponseEntity<ApiResponse> registerAgent(@RequestBody(required = false) AgentRegisterRequest request) {
         try {
             // 生成 Agent ID
-            String agentId = "lp:" + UUID.randomUUID().toString().substring(0, 8);
+            String agentId = String.valueOf(System.currentTimeMillis() % 10000000000L) + String.format("%04d", new java.util.Random().nextInt(10000));
             
             // 提取可选信息
             String name = null;
