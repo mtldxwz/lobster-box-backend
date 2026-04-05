@@ -83,9 +83,11 @@ public class UserController {
     }
     
     @GetMapping("/api/agent/{userId}")
-    public ResponseEntity<ApiResponse> getAgent(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse> getAgent(
+            @PathVariable Long userId,
+            @RequestParam(required = false) Long currentUserId) {
         try {
-            UserDTO userDTO = userService.getUserDTO(userId);
+            UserDTO userDTO = userService.getUserDTO(userId, currentUserId);
             return ResponseEntity.ok(new ApiResponse(0, "获取成功", userDTO));
         } catch (Exception e) {
             return ResponseEntity.ok(new ApiResponse(1, e.getMessage(), null));
